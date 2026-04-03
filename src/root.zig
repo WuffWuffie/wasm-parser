@@ -1,6 +1,8 @@
 const std = @import("std");
 const Io = std.Io;
 
+pub const dump = @import("dump.zig");
+
 pub fn module(reader: *Io.Reader) !void {
     const info = try reader.takeStruct(
         extern struct { magic: u32, version: u32 },
@@ -115,6 +117,10 @@ pub const BlockType = enum(i32) {
     v128 = -5,
     _,
 
+    pub fn valType(self: BlockType) ValType {
+        return @enumFromInt(@as(u7, @bitCast(@as(i7, @intCast(@intFromEnum(self))))));
+    }
+
     pub fn id(self: BlockType) u32 {
         return @bitCast(@intFromEnum(self));
     }
@@ -192,6 +198,26 @@ pub const DataVariant = enum(u8) {
 
 pub fn dataVariant(reader: *Io.Reader) !DataVariant {
     return reader.takeEnum(DataVariant, .little);
+}
+
+pub const MemOp = struct {
+    pub const Flags = packed struct(u8) {
+        alignment: u6,
+        has_idx: bool,
+        reserved: u1,
+    };
+
+    flags: Flags,
+    memory: u32,
+    offset: u32,
+};
+
+pub fn memOp(reader: *Io.Reader) !MemOp {
+    const flags = try reader.takeStruct(MemOp.Flags, .little);
+    if (flags.reserved != 0) return error.ParseError;
+    const memidx = if (flags.has_idx) try reader.takeLeb128(u32) else 0;
+    const offset = try reader.takeLeb128(u32);
+    return .{ .flags = flags, .memory = memidx, .offset = offset };
 }
 
 // Codegen start

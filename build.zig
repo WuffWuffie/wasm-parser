@@ -10,18 +10,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    // const lib = b.addLibrary(.{
-    //     .name = "wasmparser",
-    //     .root_module = b.createModule(.{
-    //         .root_source_file = b.path("src/root.zig"),
-    //         .target = target,
-    //         .optimize = optimize,
-    //     }),
-    // });
-
-    // const install = b.addInstallFile(lib.getEmittedAsm(), "wasmparser.s");
-    // b.default_step.dependOn(&install.step);
-
     const testlib = b.addExecutable(.{
         .name = "testlib",
         .root_module = b.createModule(.{
@@ -31,7 +19,7 @@ pub fn build(b: *std.Build) void {
                 .os_tag = .freestanding,
                 .cpu_model = .baseline,
             }),
-            .optimize = .ReleaseSmall,
+            // .optimize = .ReleaseSmall,
         }),
     });
 
@@ -40,23 +28,30 @@ pub fn build(b: *std.Build) void {
     testlib.rdynamic = true;
     testlib.entry = .disabled;
 
-    b.installArtifact(testlib);
+    const options = b.addOptions();
+    options.addOptionPath("wasm_source", testlib.getEmittedBin());
+    const options_mod = options.createModule();
 
     const exe = b.addExecutable(.{
-        .name = "tmp",
+        .name = "dumper",
         .root_module = b.createModule(.{
-            .root_source_file = b.path("src/dump.zig"),
+            .root_source_file = b.path("src/dumper.zig"),
             .target = target,
             .optimize = optimize,
             .imports = &.{
                 .{ .name = "wasm", .module = mod },
+                .{ .name = "options", .module = options_mod },
             },
         }),
     });
 
-    b.installArtifact(exe);
+    if (optimize != .Debug and optimize != .ReleaseSafe) {
+        exe.lto = .full;
+        exe.root_module.strip = true;
+        exe.root_module.omit_frame_pointer = true;
+    }
 
-    const run_step = b.step("run", "Run the app");
+    const run_step = b.step("dump", "Dump WebAssembly");
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);
     run_cmd.step.dependOn(b.getInstallStep());
