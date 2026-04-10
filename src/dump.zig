@@ -430,7 +430,7 @@ pub const ModuleFormatter = struct {
     allocator: std.mem.Allocator,
 
     pub fn format(self: ModuleFormatter, writer: *Io.Writer) Io.Writer.Error!void {
-        self.tryFormat(writer) catch {
+        formatModule(self.reader, self.allocator, writer) catch {
             return error.WriteFailed;
         };
     }
