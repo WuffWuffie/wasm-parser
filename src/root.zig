@@ -87,23 +87,13 @@ pub const Section = enum(u8) {
     _,
 };
 
-pub fn sectionSimple(reader: *Io.Reader) !?struct { Section, u32 } {
+pub fn section(reader: *Io.Reader) !?struct { Section, u32 } {
     const kind = reader.takeEnumNonexhaustive(Section, .little) catch |err| {
         if (err == error.EndOfStream) return null;
         return err;
     };
     const size = try reader.takeLeb128(u32);
     return .{ kind, size };
-}
-
-pub fn section(reader: *Io.Reader, buffer: []u8) !?struct { Section, Io.Reader.Limited } {
-    const kind = reader.takeEnumNonexhaustive(Section, .little) catch |err| {
-        if (err == error.EndOfStream) return null;
-        return err;
-    };
-    const size = try reader.takeLeb128(u32);
-    const sub_reader = reader.limited(.limited(size), buffer);
-    return .{ kind, sub_reader };
 }
 
 pub const ExternKind = enum(u8) {

@@ -118,9 +118,9 @@ pub fn formatModule(
     var last_section: ?wasm.Section = null;
 
     while (true) {
+        const section, const section_size = try wasm.section(module_reader) orelse break;
         var section_buffer: [4096]u8 = undefined;
-        const section, var section_reader =
-            try wasm.section(module_reader, &section_buffer) orelse break;
+        var section_reader = module_reader.limited(.limited(section_size), &section_buffer);
         const reader = &section_reader.interface;
         switch (section) {
             .type => {

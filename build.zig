@@ -19,7 +19,7 @@ pub fn build(b: *std.Build) void {
                 .os_tag = .freestanding,
                 .cpu_model = .baseline,
             }),
-            // .optimize = .ReleaseSmall,
+            .optimize = .ReleaseSmall,
         }),
     });
 
